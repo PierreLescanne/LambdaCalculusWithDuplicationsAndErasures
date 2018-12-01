@@ -1,5 +1,5 @@
 -- Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2018-12-01 14:41:05 pierre" 
+-- Time-stamp: "2018-12-01 17:56:56 pierre" 
 
 module Lambda_R_dB where
 
@@ -65,18 +65,26 @@ showLaTeX (Era i alpha t) = "\\era{" ++ show i ++ "}{" ++  showBoolLaTeX alpha +
 -- ==================== LINEARITY ====================
 -- (iL t) returns the list of free ®-de Bruijn indices of t
 -- if all the binders of the term binds
--- one and only one de Bruijn index. 
+-- one and only one de Bruijn index.
+
+remove :: Eq a => a -> [a] -> Maybe [a]
+remove _ [] = Nothing
+remove x (y:l) = if x == y then Just l
+                 else case (remove x l) of
+                   Nothing -> Nothing
+                   Just l' -> Just (y:l')
+
 iL :: RTerm -> Maybe [(Int,[Bool])]
 iL (Ind n alpha) = Just [(n,alpha)]
 iL (Abs t) =
   case iL t of
     Nothing -> Nothing
-    Just u -> if (0,[]) `elem` u
-              then let u' = delete (0,[]) u
-                   in if isJust$find (((==) 0).fst) u' 
-                      then Nothing
-                      else Just $ map (\(i,a)->(i-1,a)) u'
-              else Nothing 
+    Just u -> case remove (0,[]) u of 
+      Nothing -> Nothing
+      Just u' -> case find (((==) 0).fst) u' of
+        Just _ -> Nothing
+        Nothing -> Just $ map (\(i,a)->(i-1,a)) u'
+
 iL (App t1 t2) =
   case iL t1 of
     Nothing -> Nothing
@@ -103,7 +111,7 @@ isLinear = isJust.iL
 
 isLinearAndClosed t = case iL t of
   Nothing -> False
-  Just l -> l == []
+  Just u -> u == []
 
 -- ==================== From Λ® to Λ ====================
 readback :: RTerm -> Term
