@@ -9,8 +9,6 @@ data RTerm = App RTerm RTerm
            | Ind Int [Bool]
            | Era Int [Bool] RTerm
            | Dup Int [Bool] RTerm
-           | Sub RTerm RTerm Int [Bool]
-           | Sub' RTerm Substitution
 
 -- an infix App
 (¤) t1 t2 = App t1 t2
@@ -36,8 +34,6 @@ instance Show RTerm where
   show (Ind i alpha) = "{" ++ show i ++ "," ++ showBoolStr alpha ++ "}"
   show (Era i alpha t) = "(" ++ show i ++ "," ++ showBoolStr alpha ++ ")⊙" ++ show t
   show (Dup i alpha t) = "<(" ++  show i ++ "," ++ showBoolStr alpha ++ ")" ++ show t
-  show (Sub t1 t2 i alpha) = show t1 ++ "[" ++ show t2 ++ "/(" ++ show i ++ "," ++ showBoolStr alpha ++ ")]" 
-  show (Sub' t s) = show t ++ "〚" ++ show s ++ "〛"
 
 instance Eq RTerm where
   (==) (App t1 t2) (App u1 u2) = t1 == u1 && t2 == u2
