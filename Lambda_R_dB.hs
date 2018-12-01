@@ -29,7 +29,7 @@ instance Show Substitution where
 
 instance Show RTerm where
 --  show (Abs (Abs (Era 0 [] (Ind 1 [])))) = "true"
---  show (Abs (Era 0 [] (Abs (Ind 0 [])))) ="false"
+--  show (Abs (Era 0 [] (Abs (Ind 0 [])))) = "false"
   show (App t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
   show (Abs t @ (Ind _ _)) = "λ" ++ show t
   show (Abs t) = "λ(" ++ show t ++ ")"
@@ -49,12 +49,14 @@ instance Eq RTerm where
 
 -- The following functions are for printing easily
 -- the LaTeX forms of RTerm for the article
-showBoolLaTeX :: [Bool] -> [Char]
-showBoolLaTeX [] = "\\varepsilon"
+showBoolLaTeX :: [Bool] -> String
+showBoolLaTeX [] = "`e"
 showBoolLaTeX [b] = if b then "1" else "0"
 showBoolLaTeX (b1:b2:l) = (if b1 then "1" else "0") ++ showBoolLaTeX (b2:l)
 
-showLaTeX :: RTerm -> [Char]
+showLaTeX :: RTerm -> String
+showLaTeX (Abs (Abs (Era 0 [] (Ind 1 [])))) = "\\textsf{tt}"
+showLaTeX (Abs (Era 0 [] (Abs (Ind 0 [])))) = "\\textsf{ff}"
 showLaTeX (Ind i alpha) = "\\ind{" ++ show i ++ "}{" ++ showBoolLaTeX alpha ++ "}" 
 showLaTeX (App t1 t2) = "(" ++ showLaTeX t1 ++ "\\," ++ showLaTeX t2 ++ ")"
 showLaTeX (Abs t) = "(\\lambda" ++ showLaTeX t ++")"
@@ -62,7 +64,7 @@ showLaTeX (Dup i alpha t) = "\\dup{" ++ show i ++ "}{" ++  showBoolLaTeX alpha +
 showLaTeX (Era i alpha t) = "\\era{" ++ show i ++ "}{" ++  showBoolLaTeX alpha ++ "} `(.) " ++ showLaTeX t
 
 -- ==================== LINEARITY ====================
--- (iL t) returns the list of free extended de Bruijn indices of t
+-- (iL t) returns the list of free ®-de Bruijn indices of t
 -- if all the binders of the term binds
 -- one and only one de Bruijn index. 
 iL :: RTerm -> Maybe [(Int,[Bool])]
@@ -108,21 +110,21 @@ readback (Era j beta t) = readback t
 readback (Dup j beta t) = readback t
 
 -- ==================== From Λ to Λ® ====================
--- `pref` (for  prefix) is a function used in `readLR`
+-- `consR` is a function used in `readLR`
 -- given a boolean and an index, put the boolean (0 or 1)
 -- in front of all the alpha parts associated with the index
-pref :: Bool -> Int -> RTerm -> RTerm
-pref b i (App t1 t2) = App (pref b i t1) (pref b i t2)
-pref b i (Abs t) = Abs (pref b (i+1) t)
-pref b i (Ind j beta) = if i==j
+consR :: Bool -> Int -> RTerm -> RTerm
+consR b i (App t1 t2) = App (consR b i t1) (consR b i t2)
+consR b i (Abs t) = Abs (consR b (i+1) t)
+consR b i (Ind j beta) = if i==j
                         then Ind j (b:beta)
                         else Ind j beta
-pref b i (Era j beta t) = if i==j
-                          then Era j (b:beta) (pref b i t)
-                          else Era j beta (pref b i t)
-pref b i (Dup j beta t) = if i==j
-                          then Dup j (b:beta) (pref b i t)
-                          else Dup j beta (pref b i t)
+consR b i (Era j beta t) = if i==j
+                          then Era j (b:beta) (consR b i t)
+                          else Era j beta (consR b i t)
+consR b i (Dup j beta t) = if i==j
+                          then Dup j (b:beta) (consR b i t)
+                          else Dup j beta (consR b i t)
 
 -- call 'readLR' the function from  Λ (de Bruijn terms) to Λ®
 readLR :: Term -> RTerm
@@ -130,8 +132,8 @@ readLR (Ap t1 t2) =
   let rt1 = readLR t1
       rt2 = readLR t2
       commonInd = sort $ indOf t1 `intersect`  indOf t2
-      pt1 = foldl (.) id (map (pref False) commonInd) rt1
-      pt2 = foldl (.) id (map (pref True) commonInd) rt2
+      pt1 = foldl (.) id (map (consR False) commonInd) rt1
+      pt2 = foldl (.) id (map (consR True) commonInd) rt2
   in dupTheIndices (map (\i->(i,[])) commonInd) (App pt1 pt2) 
 readLR (Ab t) = if 0 ? t then Abs (readLR t) else Abs (Era 0 [] (readLR t))
 readLR (In i) = Ind i []

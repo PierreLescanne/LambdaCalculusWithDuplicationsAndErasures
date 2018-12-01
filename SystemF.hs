@@ -1,6 +1,3 @@
--- ========================================
---           UNDER CONSTRUCTION ☡  
--- ========================================
 -- This module is an attempt to address an adaptation
 -- of System F to /\®.
 
@@ -17,17 +14,32 @@ data TypeF = V Int
 
 instance Show TypeF where
   show ty = showBN ty
-  -- show ty = showA ty
+  --show ty = showA ty
     where
-      showBN (FA (Ar (V 0) (Ar (V 0) (V 0)))) = "boolean"
-      showBN (FA (Ar (Ar (V 0) (V 0)) (Ar (V 0) (V 0)))) = "natural"
+      showBN (FA (V 0)) = "⊥"
+      showBN (FA (Ar (V 0) (V 0))) = "ident"
+      showBN (FA (Ar (V 0) (Ar (V 0) (V 0)))) = "bool"
+      showBN (FA (Ar (Ar (V 0) (V 0)) (Ar (V 0) (V 0)))) = "nat"
       showBN ty = showA ty 
+-- showA is the canonical show function,
+-- showBN is the show function that show ⊥, identity, bool and natural specifically
 showA (V i) = show i
 showA (Ar ty1 ty2) =  (showWith ty1) ++ "->" ++ (show ty2)
   where showWith (Ar ty1 ty2) = "(" ++ (showWith ty1) ++ "->" ++ (show ty2) ++ ")"
         showWith t = show t
-showA (FA (V 0)) = "⊥"
 showA (FA ty) = "∀(" ++  show ty ++ ")"
+
+-- show LaTeX
+showTypeLaTeX :: TypeF -> String 
+showTypeLaTeX (FA (V 0)) = "\bot"
+showTypeLaTeX (FA (Ar (V 0) (V 0))) = "\\textsf{ident}"
+showTypeLaTeX (FA (Ar (V 0) (Ar (V 0) (V 0)))) = "\\textsf{bool}"
+showTypeLaTeX (FA (Ar (Ar (V 0) (V 0)) (Ar (V 0) (V 0)))) = "\\textsf{natTes}"
+showTypeLaTeX (V i) = show i
+showTypeLaTeX (Ar ty1 ty2) =  (showWith ty1) ++ " \"->\" " ++ (showTypeLaTeX ty2)
+  where showWith (Ar ty1 ty2) = "(" ++ (showWith ty1) ++ " \"->\" " ++ (showTypeLaTeX ty2) ++ ")"
+        showWith ty = showTypeLaTeX ty
+showTypeLaTeX (FA ty) = "\\forall(" ++  showTypeLaTeX ty ++ ")"
 
 instance Eq TypeF where
   (V i) == (V j) = i == j
@@ -35,10 +47,10 @@ instance Eq TypeF where
   (FA ty) == (FA ty') = ty == ty'
   _ == _ = False
 
-data Label = Vari | Abstract | Apply | Contract | Thin | ForIntro | ForElim TypeF
+data Label = Index | Abstract | Apply | Contract | Thin | ForIntro | ForElim TypeF
 
 instance Show Label where
-  show Vari = "Vari"
+  show Index = "Index"
   show Abstract = "Abstract"
   show Apply = "Apply"
   show Contract = "Contract"
@@ -46,17 +58,33 @@ instance Show Label where
   show ForIntro = "∀Intro"
   show (ForElim ty) = "∀Elim (" ++ show ty ++ ")"
 
+showLabelLaTeX :: Label -> String
+showLabelLaTeX Index = "\\textit{Index}"
+showLabelLaTeX Abstract = "\\textit{Abstract}"
+showLabelLaTeX Apply = "\\textit{Apply}"
+showLabelLaTeX Contract = "\\textit{Contract}"
+showLabelLaTeX Thin = "\\textit{Thin}"
+showLabelLaTeX ForIntro = "\\forall \\textit{Intro}"
+showLabelLaTeX (ForElim ty) = "\\forall \\textit{Elim} (" ++ showTypeLaTeX ty ++ ")"
+
+
 showContext :: [((Int,[Bool]),TypeF)] -> String
 showContext [] = ""
 showContext [((i,lb),ty)] = "{" ++ show i ++ "," ++ showBoolStr lb ++ "}:" ++show ty
 showContext (((i,lb),ty):g) = "{" ++ show i ++ "," ++ showBoolStr lb ++ "}:" ++show ty ++ ", " ++ showContext g
+
+showContextLaTeX :: [((Int,[Bool]),TypeF)] -> String
+showContextLaTeX [] = ""
+showContextLaTeX [((i,lb),ty)] = "\\ind{" ++ show i ++ "}{" ++ showBoolLaTeX lb ++ "}{:}" ++showTypeLaTeX ty
+showContextLaTeX (((i,lb),ty):g) = "\\ind{" ++ show i ++ "}{" ++ showBoolLaTeX lb ++ "}{:}" ++showTypeLaTeX ty ++ ", " ++ showContextLaTeX g
 
 data TypeTree =
     ZeroAry Label [((Int,[Bool]),TypeF)] RTerm TypeF -- / Γ |- t : σ (Label)
   | UnAry Label TypeTree [((Int,[Bool]),TypeF)] RTerm TypeF -- tree / Γ |- t : σ (Label)
   | BinAry Label TypeTree TypeTree [((Int,[Bool]),TypeF)] RTerm TypeF -- tree1 tree2 / Γ |- t : σ (Label)
 instance Show TypeTree where
-  show tree = show1 tree 1
+  -- show tree = show1 tree 1
+  show tree = "%% WARNING: this proof tree has been produced automatically.  Do not change it!" ++ showTypeTreeLaTeX tree
 
 show1 :: TypeTree -> Int -> String
 show1 (ZeroAry l g t ty) i = showContext g ++ " |- " ++
@@ -88,7 +116,7 @@ show1 (BinAry l tree1 tree2 g t ty) i = case tree2 of
                showContext g ++ " |- " ++
                show t ++ ":" ++ show ty
 
-widthLine = 180
+widthLine = 130
 line = "\n" ++  take widthLine (repeat '-')
 lineTy = "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 sign = "                          ■"
@@ -98,6 +126,31 @@ lengthRoot tree = let (g,t,ty) = root tree
                   in 4 + length(showContext g ++ show t ++ show ty) + case tree of
                     ZeroAry _ _ _ _ -> 7
                     otherwise -> 0 
+-- Show LaTeX
+showTypeTreeLaTeX :: TypeTree -> String
+showTypeTreeLaTeX (ZeroAry l g t ty) =
+  "\n\\prooftree" ++
+  "\n\\using (" ++ showLabelLaTeX l ++ ")" ++
+  "\n\\justifies " ++ showContextLaTeX g ++
+  " \"|-\" " ++ showLaTeX t ++ "{:}" ++ showTypeLaTeX ty ++
+  "\n\\endprooftree"
+
+showTypeTreeLaTeX (UnAry l tree g t ty) = 
+  "\n\\prooftree" ++
+  showTypeTreeLaTeX tree ++ 
+  "\n\\using (" ++ showLabelLaTeX l ++ ")" ++
+  "\n\\justifies " ++ showContextLaTeX g ++
+  " \"|-\" " ++ showLaTeX t ++ "{:}" ++ showTypeLaTeX ty ++
+  "\n\\endprooftree"
+
+showTypeTreeLaTeX (BinAry l tree1 tree2 g t ty) =
+  "\n\\prooftree" ++
+  showTypeTreeLaTeX tree1 ++ "\\quad" ++
+  showTypeTreeLaTeX tree2 ++ 
+  "\n\\using (" ++ showLabelLaTeX l ++ ")" ++
+  "\n\\justifies " ++ showContextLaTeX g ++
+  " \"|-\" " ++ showLaTeX t ++ "{:}" ++ showTypeLaTeX ty ++
+  "\n\\endprooftree"
 
 -- ===========  Substitutions in types =================
 data Subs = Sla TypeF | Li Subs | Shi
@@ -111,8 +164,8 @@ subs (V 0) (Li s) = V 0
 subs (V i) (Li s) = subs (subs (V (i-1)) s) Shi
 subs (V i) Shi = V (i+1)
 
-(←←) :: TypeF -> TypeF -> TypeF
-(←←) ty1 ty2 = subs ty1 (Sla ty2)
+(↤) :: TypeF -> TypeF -> TypeF
+(↤) ty1 ty2 = subs ty1 (Sla ty2)
 
 -- ========== Type Trees ==========
 
@@ -141,7 +194,7 @@ ordContxt ((i,alpha),_) ((j,beta),_) = i<j || (i==j  && alpha<<beta)
 
 -- okTree tells whether a type tree is correct
 okTree :: TypeTree -> Bool
-okTree (ZeroAry Vari g (Ind i alpha) ty) = g == [((i,alpha),ty)]
+okTree (ZeroAry Index g (Ind i alpha) ty) = g == [((i,alpha),ty)]
 okTree (ZeroAry _ _ _ _) = False
 okTree (UnAry Abstract tree g (Abs t) (Ar ty1 ty2)) =
   let g' = ((0,[]),ty1) : map (\((i,str),a')->((i+1,str),a')) g
@@ -163,7 +216,10 @@ okTree (UnAry Contract tree g (Dup i alpha t) ty) =
     Nothing -> False
 okTree (UnAry Thin tree g (Era i alpha t) ty) = 
   let (g',t',ty') = root tree
-  in okTree tree && g' == init g && ty == ty' && t == t'
+      remove (i,alpha) (((j,beta),ty):l) =
+        if (i,alpha) == (j,beta) then l
+        else ((j,beta),ty):(remove (i,alpha) l)
+  in okTree tree && g' ==  remove (i,alpha) g && ty == ty' && t == t'
 okTree (UnAry ForIntro tree g t (FA ty)) =
   let (g',t',ty') = root tree
   in okTree tree && ty == ty'
