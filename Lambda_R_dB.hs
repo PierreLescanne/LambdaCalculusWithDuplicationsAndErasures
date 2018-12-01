@@ -1,3 +1,6 @@
+-- Lambda_R_dB.hs by Pierre Lescanne
+-- Time-stamp: "2018-12-01 14:41:05 pierre" 
+
 module Lambda_R_dB where
 
 import Data.List
@@ -97,6 +100,11 @@ iL (Dup n alpha t) =
 -- is linear in the sense that if it is a closed term then
 -- all the binders bound one and only one index. 
 isLinear = isJust.iL
+
+isLinearAndClosed t = case iL t of
+  Nothing -> False
+  Just l -> l == []
+
 -- ==================== From Λ® to Λ ====================
 readback :: RTerm -> Term
 readback (App t1 t2) = Ap (readback t1) (readback t2)
