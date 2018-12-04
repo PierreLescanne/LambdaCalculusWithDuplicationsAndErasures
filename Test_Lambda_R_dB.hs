@@ -1,3 +1,6 @@
+-- Test_Lambda_R_dB.hs by Pierre Lescanne
+-- Time-stamp: "2018-12-03 10:43:27 pierre" 
+
 module Test_Lambda_R_dB where
 
 import Lambda_dB
@@ -5,6 +8,7 @@ import Lambda_R_dB
 import Data.List
 import Typable
 import SystemF
+
 -- ===========
 -- == tools ==
 -- ===========
@@ -23,6 +27,9 @@ redIt r t =  let b u = case reduc r u of
                   Nothing -> u
                   Just t' -> t'
             in t : map b (redIt r t)
+               
+showF :: RTerm -> String
+showF t = show_fancy_Term (readback t)
 
 -- =========================================
 -- ========= TEST of Lambda_R_dB  ==========
@@ -45,13 +52,17 @@ two = Ind 2 []
 
 -- the combinator K
 k = Abs (Abs (Era 0 [] (Ind 1 [])))
+k_ = readback k 
+
+-- the combinator S
 s' = Abs (Abs (Dup 0 [] (App (App (Ind 2 []) (Ind 0 [False]))
                                  (App (Ind 1 []) (Ind 0 [True])))))
--- the combinator S
 s = Abs s'
+s_  = readback s
 skk = App (App s k) k
 -- the combinator I aka λ{0,ε}
 i = Abs (Ind 0 [])
+i_ = readback i
 -- the term x x
 xx = Dup 0 [] (App (Ind 0 [False]) (Ind 0 [True]))
 xxx = Dup 0 [] (Dup 0 [False] (((Ind 0 [False,False])¤(Ind 0 [False,True]))¤(Ind 0 [True])))
@@ -74,6 +85,13 @@ y =
   let y0 = Abs ((Ind 1 [False]) ¤ (Dup 0 [] ((Ind 0 [False]) ¤ (Ind 0 [True]))))
       y1 = Abs ((Ind 1 [True]) ¤ (Dup 0 [] ((Ind 0 [False]) ¤ (Ind 0 [True]))))
   in Abs (Dup 0 [] (y0 ¤ y1))
+
+y_ = readback y
+
+theta = t ¤ t
+  where t = Abs (Abs (Dup 0 [] ((Ind 0 [False]) ¤ (Dup 1 [] ((Ind 1 [False])  ¤ (Ind 1 [True])) ¤ (Ind 0 [True])))))
+
+theta_ = readback theta
 
 -- == The Church numerals ==
 -- n7 is in ΛdB
@@ -115,6 +133,7 @@ chSucc' = Abs (Abs (Abs (Dup 1 [] (App (Ind 1 [False])
                                             (Ind 0 []))))))
 -- Addition
 chAdd = Abs (Abs (Abs (Abs (Dup 1 [] (((Ind 3 []) `App` (Ind 1 [False])) `App` (((Ind 2 []) `App` (Ind 1 [True])) `App` (Ind 0 [])))))))
+(^+) t u = nf$chAdd¤t¤u
 
 -- Multiplication
 chMult = Abs (Abs (Abs (Abs ((Ind 3 []) ¤  ((Ind 2 []) ¤ (Ind 1 [])) ¤ (Ind 0 [])))))
@@ -160,11 +179,15 @@ doub12 = Abs (Abs (Dup 1 [] (((Ind 1 [False])¤ch1)¤(((Ind 1 [True])¤ch2)¤zer
 -- ================================
 -- A trivial wrong type tree
 foo = ZeroAry Index [] i nul
--- ===== Composition of types =====
+-- ===== Some types =====
 -- Null
 nul = FA (V 0)
 -- Id
 ident = FA(V 0 → V 0)
+-- Bool
+bool = FA (V 0→(V 0→V 0))
+-- Nat
+nat = FA ((V 0→V 0)→(V 0→V 0))
 -- List
 list =  FA(((V 1) → ((V 0)→(V 0)))→((V 0)→(V 0)))
 listBool = list ↤ bool
@@ -175,8 +198,6 @@ listNat = list ↤ nat
 (-+-) ty1 ty2 = FA ((V 1 → V 0) → ((V 2 → V 0) → V 0)) ↤ ty1 ↤ ty2
 
 -- ===== Church Numerals =====
-
-nat = FA ((V 0→V 0)→(V 0→V 0))
 
 -- ch0 has type nat = ∀((0->0)->(0->0)) given by tree6
 
@@ -320,7 +341,6 @@ drvo9 = ZeroAry Index  [((0,[True]),ident)] (Ind 0 [True]) (ident)
 
 
 -- ===== Booleans =====
-bool = FA (V 0→(V 0→V 0))
 
 -- ff has type bool = ∀(0->0->0)
 bush = UnAry ForIntro bush1 g t ty
@@ -548,10 +568,6 @@ wald10 = ZeroAry Index g t ty
         t = zero
         ty = V 0
 
--- Test show Type Tree
-showTL ty = showTypeLaTeX ty
-ty = FA(V 0→(V 0→V 0))
-ty'= FA(V 0)
 --- Local Variables:
 --- mode: haskell
 --- mode: haskell-indentation

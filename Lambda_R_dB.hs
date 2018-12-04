@@ -1,5 +1,5 @@
 -- Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2018-12-01 17:56:56 pierre" 
+-- Time-stamp: "2018-12-04 11:01:47 pierre" 
 
 module Lambda_R_dB where
 
@@ -29,14 +29,19 @@ instance Show Substitution where
   show (Lift s) = "⇑(" ++ show s ++ ")"
 
 instance Show RTerm where
---  show (Abs (Abs (Era 0 [] (Ind 1 [])))) = "true"
---  show (Abs (Era 0 [] (Abs (Ind 0 [])))) = "false"
-  show (App t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
-  show (Abs t @ (Ind _ _)) = "λ" ++ show t
-  show (Abs t) = "λ(" ++ show t ++ ")"
-  show (Ind i alpha) = "{" ++ show i ++ "," ++ showBoolStr alpha ++ "}"
-  show (Era i alpha t) = "(" ++ show i ++ "," ++ showBoolStr alpha ++ ")⊙" ++ show t
-  show (Dup i alpha t) = "<(" ++  show i ++ "," ++ showBoolStr alpha ++ ")" ++ show t
+  -- show t = showRTerm t
+  show t = showLaTeX t
+  -- show t = showALaGhilezan t
+  -- show t = showALaGhilezanLaTeX t
+  -- show t = showALaLengrandLaTeX t
+--showRTerm (Abs (Abs (Era 0 [] (Ind 1 [])))) = "true"
+--showRTerm (Abs (Era 0 [] (Abs (Ind 0 [])))) = "false"
+showRTerm (App t1 t2) = "(" ++ showRTerm t1 ++ " " ++ showRTerm t2 ++ ")"
+showRTerm (Abs t @ (Ind _ _)) = "λ" ++ showRTerm t
+showRTerm (Abs t) = "λ(" ++ showRTerm t ++ ")"
+showRTerm (Ind i alpha) = "{" ++ show i ++ "," ++ showBoolStr alpha ++ "}"
+showRTerm (Era i alpha t) = "(" ++ show i ++ "," ++ showBoolStr alpha ++ ")⊙" ++ show t
+showRTerm (Dup i alpha t) = "<(" ++show i ++ "," ++ showBoolStr alpha ++ ")" ++ showRTerm t
 
 instance Eq RTerm where
   (==) (App t1 t2) (App u1 u2) = t1 == u1 && t2 == u2
@@ -63,10 +68,8 @@ showLaTeX (Dup i alpha t) = "\\dup{" ++ show i ++ "}{" ++  showBoolLaTeX alpha +
 showLaTeX (Era i alpha t) = "\\era{" ++ show i ++ "}{" ++  showBoolLaTeX alpha ++ "} `(.) " ++ showLaTeX t
 
 -- ==================== LINEARITY ====================
--- (iL t) returns the list of free ®-de Bruijn indices of t
--- if all the binders of the term binds
--- one and only one de Bruijn index.
-
+-- (iL t) returns the list of free (R)-de Bruijn indices of t
+-- if all the binders of the term binds one and only one (R)-index.
 remove :: Eq a => a -> [a] -> Maybe [a]
 remove _ [] = Nothing
 remove x (y:l) = if x == y then Just l
@@ -105,13 +108,12 @@ iL (Dup n alpha t) =
               else Nothing
       
                         
--- is linear in the sense that if it is a closed term then
--- all the binders bound one and only one index. 
-isLinear = isJust.iL
-
+-- is linear in the sense that all the binders bound one and only one index. 
 isLinearAndClosed t = case iL t of
   Nothing -> False
   Just u -> u == []
+
+isLinear = isJust.iL
 
 -- ==================== From Λ® to Λ ====================
 readback :: RTerm -> Term
@@ -412,6 +414,75 @@ reduc r t = case r t of
       Just u' -> Just (Dup i alpha u')
       Nothing ->  Nothing
 
+-- ========================================
+-- Fancy Show with explicit names
+-- ========================================      
+
+-- Translaion from /\®dB synxtax to /\® syntax
+-- à la Ghilezan et al.
+-- à la Kesner Lengrand (to do)
+
+dB2L :: Int -> RTerm -> RTerm
+dB2L i (Ind n alpha) = Ind (i-n-1) alpha  -- i > n
+dB2L i (App t1 t2) = App (dB2L i t1) (dB2L i t2)
+dB2L i (Abs t) = Abs (dB2L (i+1) t)
+dB2L i (Era n alpha t) = Era (i-n-1) alpha (dB2L i t)
+dB2L i (Dup n alpha t) = Dup (i-n-1) alpha (dB2L i t)
+
+ind2Var :: [((Int, [Bool]), String)]
+ind2Var = [((0,[]),"x"),((1,[]),"y"),((2,[]),"z"),((3,[]),"u"),((4,[]),"v")]
+          --,((0,[False]),"u"), ((0,[True]),"v"),((0,[False,False]),"w"),((0,[False,True]),"t"),((1,[False]),"s"),((1,[True]),"r")]
+
+rInd2Var :: (Int,[Bool]) -> String
+rInd2Var (i, alpha) = case lookup (i, alpha) ind2Var of
+  Just v -> v
+  Nothing -> num2Var i ++ showBoolStr alpha
+
+rInd2VarLaTeX :: (Int,[Bool]) -> String
+rInd2VarLaTeX (i, alpha) = case lookup (i, alpha) ind2Var of
+  Just v -> v
+  Nothing -> num2Var i ++ "_{" ++ showBoolStr alpha ++ "}"
+
+showALaGhilezan t = showLevel 0 (dB2L 0 t) where
+  showLevel _ (Ind n alpha) = rInd2Var (n,alpha)
+  showLevel i (App t1 t2) = showLevel i t1 ++ " " ++ showLevelWith i t2
+    where showLevelWith i (App t1 t2) = "(" ++ showLevel i t1 ++ " " ++ showLevelWith i t2 ++ ")"
+          showLevelWith i t = showLevel i t
+  showLevel i (Abs t@(App _ _)) = "^" ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
+  showLevel i (Abs t) = "^" ++ num2Var i  ++"." ++ showLevel (i+1) t
+  showLevel i (Era n alpha t) = (rInd2Var (n,alpha)) ++ "⊙(" ++ showLevel i t ++ ")"
+  showLevel i (Dup n alpha t) = (rInd2Var (n,alpha)) ++ "<^" ++
+                                rInd2Var (n,alpha++[False]) ++ "_" ++ rInd2Var (n,alpha++[True]) ++ "(" ++
+                                showLevel i t ++ ")"
+
+
+
+showALaGhilezanLaTeX t = showLevel 0 (dB2L 0 t) where
+  showLevel _ (Ind n alpha) = rInd2VarLaTeX (n,alpha)
+  showLevel i (App t1 t2) = showLevel i t1 ++ "\\," ++ showLevelWith i t2
+    where showLevelWith i (App t1 t2) = "(" ++ showLevel i t1 ++ "\\," ++ showLevelWith i t2 ++ ")" 
+          showLevelWith i t = showLevel i t
+  showLevel i (Abs t@(App _ _)) = "`l" ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
+  showLevel i (Abs t) = "`l" ++ num2Var i  ++"." ++ showLevel (i+1) t
+  showLevel i (Era n alpha t) = "\\eraG{" ++ (rInd2VarLaTeX (n,alpha)) ++ "}{" ++ showLevel i t ++"}"
+  showLevel i (Dup n alpha t) = "(\\dupG{" ++ (rInd2VarLaTeX(n,alpha)) ++ "}{" ++
+                                rInd2VarLaTeX (n,alpha++[False]) ++ "}{" ++ rInd2VarLaTeX (n,alpha++[True]) ++ "}{" ++
+                                showLevel i t ++ "})"
+
+showALaLengrandLaTeX t = showLevel 0 (dB2L 0 t) where
+  showLevel _ (Ind n alpha) = rInd2VarLaTeX (n,alpha)
+  showLevel i (App t1 t2) = showLevel i t1 ++ "\\," ++ showLevelWith i t2
+    where showLevelWith i (App t1 t2) = "(" ++ showLevel i t1 ++ "\\," ++ showLevelWith i t2 ++ ")" 
+          showLevelWith i t = showLevel i t
+  showLevel i (Abs t@(App _ _)) = "`l" ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
+  showLevel i (Abs t) = "`l" ++ num2Var i  ++"." ++ showLevel (i+1) t
+  showLevel i (Era n alpha t) = "\\eraL{" ++ (rInd2VarLaTeX (n,alpha)) ++ "}{" ++ showLevel i t ++"}"
+  showLevel i (Dup n alpha t) = "(\\dupL{" ++ (rInd2VarLaTeX(n,alpha)) ++ "}{" ++
+                                rInd2VarLaTeX (n,alpha++[False]) ++ "}{" ++ rInd2VarLaTeX (n,alpha++[True]) ++ "}{" ++
+                                showLevel i t ++ "})"
+-- Translation from level syntax to de Bruijn syntax
+
+  
 --- Local Variables:
 --- mode: haskell
 --- mode: haskell-indentation
