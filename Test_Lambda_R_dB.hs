@@ -1,5 +1,5 @@
 -- Test_Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2018-12-03 10:43:27 pierre" 
+-- Time-stamp: "2019-01-17 18:13:00 pierre" 
 
 module Test_Lambda_R_dB where
 
@@ -477,7 +477,7 @@ forest6 = ZeroAry Index g t ty
         t = zero
         ty = V 0
         
--- [ff,tree]: listBool
+-- [ff,tt]: listBool
 foret = UnAry ForIntro foret1 g t ty
   where g = []
         t = doubFT
@@ -567,8 +567,3 @@ wald10 = ZeroAry Index g t ty
   where g = [((0,[]),V 0)]
         t = zero
         ty = V 0
-
---- Local Variables:
---- mode: haskell
---- mode: haskell-indentation
---- End:

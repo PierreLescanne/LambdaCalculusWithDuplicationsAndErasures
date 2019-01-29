@@ -1,5 +1,5 @@
 -- Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2018-12-04 11:01:47 pierre" 
+-- Time-stamp: "2019-01-17 14:41:13 pierre" 
 
 module Lambda_R_dB where
 
@@ -29,8 +29,8 @@ instance Show Substitution where
   show (Lift s) = "⇑(" ++ show s ++ ")"
 
 instance Show RTerm where
-  -- show t = showRTerm t
-  show t = showLaTeX t
+  show t = showRTerm t
+  -- show t = showLaTeX t
   -- show t = showALaGhilezan t
   -- show t = showALaGhilezanLaTeX t
   -- show t = showALaLengrandLaTeX t
@@ -41,7 +41,7 @@ showRTerm (Abs t @ (Ind _ _)) = "λ" ++ showRTerm t
 showRTerm (Abs t) = "λ(" ++ showRTerm t ++ ")"
 showRTerm (Ind i alpha) = "{" ++ show i ++ "," ++ showBoolStr alpha ++ "}"
 showRTerm (Era i alpha t) = "(" ++ show i ++ "," ++ showBoolStr alpha ++ ")⊙" ++ show t
-showRTerm (Dup i alpha t) = "<(" ++show i ++ "," ++ showBoolStr alpha ++ ")" ++ showRTerm t
+showRTerm (Dup i alpha t) = "(" ++show i ++ "," ++ showBoolStr alpha ++ ")▽" ++ showRTerm t
 
 instance Eq RTerm where
   (==) (App t1 t2) (App u1 u2) = t1 == u1 && t2 == u2
@@ -69,7 +69,7 @@ showLaTeX (Era i alpha t) = "\\era{" ++ show i ++ "}{" ++  showBoolLaTeX alpha +
 
 -- ==================== LINEARITY ====================
 -- (iL t) returns the list of free (R)-de Bruijn indices of t
--- if all the binders of the term binds one and only one (R)-index.
+-- if all the binders of the term bind one and only one (R)-index.
 remove :: Eq a => a -> [a] -> Maybe [a]
 remove _ [] = Nothing
 remove x (y:l) = if x == y then Just l
@@ -108,7 +108,7 @@ iL (Dup n alpha t) =
               else Nothing
       
                         
--- is linear in the sense that all the binders bound one and only one index. 
+-- is linear in the sense that all the binders bound one and only one indices. 
 isLinearAndClosed t = case iL t of
   Nothing -> False
   Just u -> u == []
@@ -462,8 +462,8 @@ showALaGhilezanLaTeX t = showLevel 0 (dB2L 0 t) where
   showLevel i (App t1 t2) = showLevel i t1 ++ "\\," ++ showLevelWith i t2
     where showLevelWith i (App t1 t2) = "(" ++ showLevel i t1 ++ "\\," ++ showLevelWith i t2 ++ ")" 
           showLevelWith i t = showLevel i t
-  showLevel i (Abs t@(App _ _)) = "`l" ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
-  showLevel i (Abs t) = "`l" ++ num2Var i  ++"." ++ showLevel (i+1) t
+  showLevel i (Abs t@(App _ _)) = "`l " ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
+  showLevel i (Abs t) = "`l " ++ num2Var i  ++"." ++ showLevel (i+1) t
   showLevel i (Era n alpha t) = "\\eraG{" ++ (rInd2VarLaTeX (n,alpha)) ++ "}{" ++ showLevel i t ++"}"
   showLevel i (Dup n alpha t) = "(\\dupG{" ++ (rInd2VarLaTeX(n,alpha)) ++ "}{" ++
                                 rInd2VarLaTeX (n,alpha++[False]) ++ "}{" ++ rInd2VarLaTeX (n,alpha++[True]) ++ "}{" ++
@@ -474,16 +474,9 @@ showALaLengrandLaTeX t = showLevel 0 (dB2L 0 t) where
   showLevel i (App t1 t2) = showLevel i t1 ++ "\\," ++ showLevelWith i t2
     where showLevelWith i (App t1 t2) = "(" ++ showLevel i t1 ++ "\\," ++ showLevelWith i t2 ++ ")" 
           showLevelWith i t = showLevel i t
-  showLevel i (Abs t@(App _ _)) = "`l" ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
-  showLevel i (Abs t) = "`l" ++ num2Var i  ++"." ++ showLevel (i+1) t
+  showLevel i (Abs t@(App _ _)) = "`l " ++ num2Var i  ++".(" ++ showLevel (i+1) t ++ ")"
+  showLevel i (Abs t) = "`l " ++ num2Var i  ++"." ++ showLevel (i+1) t
   showLevel i (Era n alpha t) = "\\eraL{" ++ (rInd2VarLaTeX (n,alpha)) ++ "}{" ++ showLevel i t ++"}"
   showLevel i (Dup n alpha t) = "(\\dupL{" ++ (rInd2VarLaTeX(n,alpha)) ++ "}{" ++
                                 rInd2VarLaTeX (n,alpha++[False]) ++ "}{" ++ rInd2VarLaTeX (n,alpha++[True]) ++ "}{" ++
                                 showLevel i t ++ "})"
--- Translation from level syntax to de Bruijn syntax
-
-  
---- Local Variables:
---- mode: haskell
---- mode: haskell-indentation
---- End:

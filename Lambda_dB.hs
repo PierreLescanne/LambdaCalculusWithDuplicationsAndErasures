@@ -57,7 +57,3 @@ showLev i (Ab t) = "^" ++ num2Var i  ++"." ++ showLev (i+1) t
 -- On takes a term with de Bruijn indices and one print a terms with variables
 show_fancy_Term t = showLev 0 (d2L t)
 
---- Local Variables:
---- mode: haskell
---- mode: haskell-indentation
---- End:

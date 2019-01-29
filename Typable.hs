@@ -1,5 +1,5 @@
 -- Typable.hs by Pierre Lescanne
--- Time-stamp: "2018-11-16 17:14:17 pierre" 
+-- Time-stamp: "2019-01-13 11:33:30 pierre" 
 
 ----------------------------------
 -- type reconstruction
@@ -18,7 +18,7 @@ instance Eq Type where
   _ == _ = False
 
 instance Show Type where
-  show ty = show_fancy (indOf ty) ty
+  show ty = show_fancy_Type (indOf ty) ty
     where indOf (Var i) = [i]
           indOf (Arrow ty1 ty2) = indOf ty1 `union` indOf ty2
   -- show ty = showClassic ty
@@ -30,12 +30,12 @@ showClassic (Arrow ty1 ty2) = (showWith ty1) ++ "->" ++ (showClassic ty2)
 
 greek_alphabet = ["α","β","γ","δ","ζ","η","θ"]
 
-show_fancy :: [Int] -> Type -> String 
-show_fancy l (Var i) = let Just k = elemIndex i l
-                       in if k <= 7 then  greek_alphabet !! k else "α" ++ show (k-8)
-show_fancy l (Arrow ty1 ty2) = (showfWith ty1) ++ "->" ++ (show_fancy l ty2)
-      where showfWith ty@(Var _) = show_fancy l ty    
-            showfWith (Arrow ty1 ty2) = "(" ++ (showfWith ty1) ++ "->" ++ (show_fancy l ty2) ++ ")"
+show_fancy_Type :: [Int] -> Type -> String 
+show_fancy_Type l (Var i) = let Just k = elemIndex i l
+                       in if k <= 6 then  greek_alphabet !! k else "α" ++ show (k-7)
+show_fancy_Type l (Arrow ty1 ty2) = (showfWith ty1) ++ "->" ++ (show_fancy_Type l ty2)
+      where showfWith ty@(Var _) = show_fancy_Type l ty    -- show With parentheses
+            showfWith (Arrow ty1 ty2) = "(" ++ (showfWith ty1) ++ "->" ++ (show_fancy_Type l ty2) ++ ")"
 
 -- Equation between types
 type Equation = (Type,Type)
@@ -148,8 +148,3 @@ typeOf t =  case typeAssgOf t
                  let asg ty [] = ty
                      asg ty (a:lasg) = asg (ty←a) lasg
                  in Just (asg ty sol)
-
---- Local Variables:
---- mode: haskell
---- mode: haskell-indentation
---- End:

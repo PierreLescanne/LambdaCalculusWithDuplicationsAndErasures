@@ -1,3 +1,6 @@
+-- SystemF.hs by Pierre Lescanne
+-- Time-stamp: "2019-01-18 22:13:43 pierre" 
+
 -- This module is an attempt to address an adaptation
 -- of System F to /\®.
 
@@ -13,8 +16,8 @@ data TypeF = V Int
 (→) ty1 ty2 = Ar ty1 ty2
 
 instance Show TypeF where
-  show ty = showBN ty
-  --show ty = showA ty
+  --show ty = showBN ty
+  show ty = showA ty
     where
       showBN (FA (V 0)) = "⊥"
       showBN (FA (Ar (V 0) (V 0))) = "ident"
@@ -53,8 +56,8 @@ instance Show Label where
   show Index = "Index"
   show Abstract = "Abstract"
   show Apply = "Apply"
-  show Contract = "Contract"
-  show Thin = "Thin"
+  show Contract = "Duplicate"
+  show Thin = "Erase"
   show ForIntro = "∀Intro"
   show (ForElim ty) = "∀Elim (" ++ show ty ++ ")"
 
@@ -62,8 +65,8 @@ showLabelLaTeX :: Label -> String
 showLabelLaTeX Index = "\\textit{Index}"
 showLabelLaTeX Abstract = "\\textit{Abstract}"
 showLabelLaTeX Apply = "\\textit{Apply}"
-showLabelLaTeX Contract = "\\textit{Contract}"
-showLabelLaTeX Thin = "\\textit{Thin}"
+showLabelLaTeX Contract = "\\textit{Duplicate}"
+showLabelLaTeX Thin = "\\textit{Erase}"
 showLabelLaTeX ForIntro = "\\forall \\textit{Intro}"
 showLabelLaTeX (ForElim ty) = "\\forall \\textit{Elim} (" ++ showTypeLaTeX ty ++ ")"
 
@@ -116,7 +119,8 @@ show1 (BinAry l tree1 tree2 g t ty) i = case tree2 of
                showContext g ++ " |- " ++
                show t ++ ":" ++ show ty
 
-widthLine = 130
+-- widthLine = 130  --my screen at home
+widthLine = 144 -- my laptop with "DejaVu Sans Mono Book"
 line = "\n" ++  take widthLine (repeat '-')
 lineTy = "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 sign = "                          ■"
@@ -210,7 +214,8 @@ okTree (UnAry Contract tree g (Dup i alpha t) ty) =
     Just ty1 -> case lookup (i,alpha++[False]) g' of
       Just ty2 -> case lookup (i,alpha++[True]) g' of
         Just ty3 ->  ty' == ty && ty1 == ty2 && ty1 == ty3 &&
-                     t' == t && okTree tree
+                     t' == t && okTree tree &&
+                     delete ((i,alpha),ty1) g == delete ((i,alpha++[False]),ty2) (delete ((i,alpha++[True]),ty3) g')
         Nothing -> False
       Nothing -> False
     Nothing -> False
@@ -222,13 +227,9 @@ okTree (UnAry Thin tree g (Era i alpha t) ty) =
   in okTree tree && g' ==  remove (i,alpha) g && ty == ty' && t == t'
 okTree (UnAry ForIntro tree g t (FA ty)) =
   let (g',t',ty') = root tree
-  in okTree tree && ty == ty'
+      g'' = map (\(x,typ)->(x,subs typ Shi)) g
+  in okTree tree && ty == ty' && g'' == g'
 okTree (UnAry (ForElim ty1) tree g t ty) = 
   let (g',t',FA ty') = root tree
-  in okTree tree && ty == subs ty' (Sla ty1)
+  in okTree tree && ty == subs ty' (Sla ty1) && g == g'
 
-
---- Local Variables:
---- mode: haskell
---- mode: haskell-indentation
---- End:
