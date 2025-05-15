@@ -1,35 +1,16 @@
 -- Test_Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2019-01-17 18:13:00 pierre" 
+-- Time-stamp: "2025-05-15 16:38:13 pierre" 
 
 module Test_Lambda_R_dB where
 
 import Lambda_dB
 import Lambda_R_dB
+import Lambda_R_dB_Expl_Subs
+import Lambda_R_dB_show
+import Lambda_R_dB_standard
 import Data.List
 import Typable
 import SystemF
-
--- ===========
--- == tools ==
--- ===========
--- comparison between `standardize` t and t
-stVSid t = standardize t == t
--- comparison between `standardize` and `representative`
-stVSrep t = standardize t == representative t
--- It is no a real  normalisation, because the number of reductions is limited.
--- For the examples, it is enough in order to reach the normal form.
--- If it is not enough, change the parameter after !!.
-nf t = (redIt lambdaR t)  !! 64
-betaNF t =  (redIt betaR t)  !! 16
-
-redIt :: (RTerm -> Maybe RTerm) -> RTerm -> [RTerm]
-redIt r t =  let b u = case reduc r u of
-                  Nothing -> u
-                  Just t' -> t'
-            in t : map b (redIt r t)
-               
-showF :: RTerm -> String
-showF t = show_fancy_Term (readback t)
 
 -- =========================================
 -- ========= TEST of Lambda_R_dB  ==========
@@ -59,7 +40,20 @@ s' = Abs (Abs (Dup 0 [] (App (App (Ind 2 []) (Ind 0 [False]))
                                  (App (Ind 1 []) (Ind 0 [True])))))
 s = Abs s'
 s_  = readback s
+
+sk = App s k
+sk_ = readback sk
+
 skk = App (App s k) k
+skk_ = readback skk
+
+-- reductions of skk
+βskk = β skk
+ββskk = β (β skk)
+βββskk = β (β (β skk))
+ββββskk = β (β (β (β skk)))
+γωββββskk = γΩ (β (β (β (β skk))))
+
 -- the combinator I aka λ{0,ε}
 i = Abs (Ind 0 [])
 i_ = readback i
@@ -88,14 +82,20 @@ y =
 
 y_ = readback y
 
+yi = App y i
+βyi = β yi
+ββyi = β (β yi)
+βββyi = β ββyi
+ββββyi = β βββyi
+
+-- the Turing Fix point combinator
 theta = t ¤ t
   where t = Abs (Abs (Dup 0 [] ((Ind 0 [False]) ¤ (Dup 1 [] ((Ind 1 [False])  ¤ (Ind 1 [True])) ¤ (Ind 0 [True])))))
 
 theta_ = readback theta
 
--- == The Church numerals ==
--- n7 is in ΛdB
--- ch7 is in Λ®dB
+-- == Church numerals ==
+-- n0 is in ΛdB
 n0 = Ab (Ab (In 0))
 ch0 = readLR n0
 ch0' = Abs (Abs (Era 1 [] (Ind 0 [])))
@@ -118,6 +118,7 @@ ch3' = Abs (Abs (Dup 1 [] (Dup 1 [False] (App (Ind 1 [False,False]) (App (Ind 1 
 ch3'' = Abs (Abs (Dup 1 [] (Dup 1 [True] (App (Ind 1 [True,False]) (App (Ind 1 [True,True]) (App (Ind 1 [False]) (Ind 0 [])))))))
 ch3''' = Abs (Abs (Dup 1 [] ((Ind 1 [True])¤(Dup 1 [False] ((Ind 1 [False,False])¤((Ind 1 [False,True])¤(Ind 0 [])))))))
 -- six forms of 5, the first one is "canonical"
+n5 = readback ch5
 ch5 = representative ch5'
 ch5' = nf (chAdd¤ch3¤ch2)
 ch5'' = nf (chAdd¤ch2¤ch3)
@@ -133,13 +134,20 @@ chSucc' = Abs (Abs (Abs (Dup 1 [] (App (Ind 1 [False])
                                             (Ind 0 []))))))
 -- Addition
 chAdd = Abs (Abs (Abs (Abs (Dup 1 [] (((Ind 3 []) `App` (Ind 1 [False])) `App` (((Ind 2 []) `App` (Ind 1 [True])) `App` (Ind 0 [])))))))
-(^+) t u = nf$chAdd¤t¤u
+
+(®+) :: Term -> Term -> Term
+t ®+ u = readback$nf$chAdd¤readLR t¤readLR u
 
 -- Multiplication
 chMult = Abs (Abs (Abs (Abs ((Ind 3 []) ¤  ((Ind 2 []) ¤ (Ind 1 [])) ¤ (Ind 0 [])))))
 
+(®*) :: Term -> Term -> Term
+m ®* n = readback $ nf $ chMult ¤ readLR m ¤ readLR n
+
 -- Exponential 
 chExp = Abs (Abs (Abs (Abs (( two ¤ (Ind 3 [])) ¤ one ¤ zero))))
+
+m ®^ n = readback $ nf $ chExp ¤ readLR m ¤ readLR n
 
 -- == Variant of Church numerals ==
 -- this a variant of Church numerals found in
@@ -160,6 +168,15 @@ imp = Abs (Abs (Abs (Abs (Dup 1 [] (((Ind 3 [])¤(((Ind 2 [])¤(Ind 1 [False]))�
 equiv' = Abs (Abs (aND¤(imp¤zero¤one)¤(imp¤one¤zero)))
 equiv = Abs (Abs (Abs (Abs (Dup 0 [] (Dup 1 [] (Dup 2 [] ((Ind 3 [])¤((Ind 2 [False])¤(Ind 1 [False])¤(Ind 0 [False]))¤((Ind 2 [True])¤(Ind 0 [True])¤(Ind 1 [True])))))))))
 
+-- == Exercises ==
+ffvff = oR ¤ ff ¤ ff
+
+negff = nEG ¤ ff
+βστβ2negff = β $ στ $ β $ β negff
+
+negtt = nEG ¤ tt
+στβ3negtt = στ $ β $ β $ β negtt
+
 -- Shorthands for Boolean
 n b = nf (nEG¤b)
 (∨) b1 b2 = nf (oR¤b1¤b2)
@@ -174,6 +191,17 @@ singF = Abs (Abs ((one¤ff)¤zero))
 doubFT = Abs (Abs (Dup 1 [] (((Ind 1 [False])¤ff)¤(((Ind 1 [True])¤tt)¤zero))))
 -- doubleton [1,2]
 doub12 = Abs (Abs (Dup 1 [] (((Ind 1 [False])¤ch1)¤(((Ind 1 [True])¤ch2)¤zero))))
+
+-- ========================================
+-- Closures
+-- ========================================
+ic = AbC (IdC 0 [])
+kc = AbC (AbC (ErC 0 [] (IdC 1 [])))
+sc = AbC (AbC (AbC (DuC 0 [] (ApC (ApC (IdC 2 []) (IdC 0 [False]))
+                                 (ApC (IdC 1 []) (IdC 0 [True]))))))
+skc = ApC sc kc
+skkc = ApC (ApC sc kc) kc
+
 -- ================================
 -- ==== Type trees in System F ====
 -- ================================
