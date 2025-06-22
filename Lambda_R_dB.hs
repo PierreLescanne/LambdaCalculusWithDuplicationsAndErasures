@@ -1,5 +1,5 @@
 -- Lambda_R_dB.hs by Pierre Lescanne
--- Time-stamp: "2025-05-15 16:34:13 pierre" 
+-- Time-stamp: "2025-05-22 11:00:09 pierre" 
 
 module Lambda_R_dB where
 
@@ -202,7 +202,7 @@ replace (Abs t1) t i α =
 replace (Ind i α) t j β = if (i,α) == (j,β)
                                  then t
                                  else (Ind i α)
-replace u @ (Era i α t1) t j β =
+replace u@(Era i α t1) t j β =
   if (i,α) == (j,β)
   then u
   else Era i α (replace t1 t j β)
@@ -236,7 +236,7 @@ subOnInd (Lift s) i = (subOnInd s (i-1)) + 1
 -- is meanlingless)
 
 structural :: RTerm -> Maybe RTerm
-structural t @ (Dup i α (App t1 t2)) =                 -- γ2 and γ3
+structural t@(Dup i α (App t1 t2)) =                 -- γ2 and γ3
   if (i,α++[True]) € t1 && (i,α++[False]) € t1
   then Just (App (Dup i α t1) t2)
   else if (i,α++[True]) € t2 && (i,α++[False]) € t2
@@ -248,7 +248,7 @@ structural (App t1 (Era i α t2)) = Just(Era i α (App t1 t2)) -- ω3
 structural t@(Abs (Era i α t')) =                         -- ω1
   if i > 0 then Just (Era (i-1) α (Abs t'))
   else Nothing
-structural t' @ (Dup i α (Era j β t)) = Just (γω' t')     -- γω1 and γω2 
+structural t'@(Dup i α (Era j β t)) = Just (γω' t')     -- γω1 and γω2 
 structural (Era i α (Era j β t)) =
   if i < j then Just(Era j β (Era i α t))     -- ε1
   else Nothing
@@ -279,7 +279,6 @@ betaR t = Nothing
 
 
 -- ======== THE REDUCTIONS AND NORMALIZATION OF Λ®  ========
-
 -- Given a relation 'r', r-reduce (one step) a term 't'
 reduc :: (RTerm -> Maybe RTerm) -> RTerm -> Maybe RTerm
 reduc r t = case r t of
@@ -315,8 +314,12 @@ reduc r t = case r t of
 γΩ (Abs t) = (Abs (γΩ t))
 γΩ (Ind i α) = Ind i α
 γΩ (Era i α t) = Era i α (γΩ t)
-γΩ t' @ (Dup i α t) = let t'' = γω' t' in if t'' == t' then Dup i α (γΩ t) else t''
+γΩ t'@(Dup i α t) = let t'' = γω' t' in if t'' == t' then Dup i α (γΩ t) else t''
 
+-- Given a relation 'r' iterate 'n' time 'r'
+itR :: Int -> (RTerm -> RTerm) -> RTerm -> RTerm
+itR 0 _ t = t
+itR n r t = r (itR (n - 1) r t)
 
 -- ========== The normalization in Λ® ==========
 -- For the examples, it is enough in order to reach the normal form.
