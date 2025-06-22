@@ -1,5 +1,5 @@
 -- SystemF.hs by Pierre Lescanne
--- Time-stamp: "2019-01-18 22:13:43 pierre" 
+-- Time-stamp: "2019-05-11 17:05:28 pierre" 
 
 -- This module is an attempt to address an adaptation
 -- of System F to /\®.
@@ -7,6 +7,7 @@
 module SystemF where
 
 import Lambda_R_dB
+import Lambda_R_dB_show
 import Data.List
 
 data TypeF = V Int
@@ -86,8 +87,8 @@ data TypeTree =
   | UnAry Label TypeTree [((Int,[Bool]),TypeF)] RTerm TypeF -- tree / Γ |- t : σ (Label)
   | BinAry Label TypeTree TypeTree [((Int,[Bool]),TypeF)] RTerm TypeF -- tree1 tree2 / Γ |- t : σ (Label)
 instance Show TypeTree where
-  -- show tree = show1 tree 1
-  show tree = "%% WARNING: this proof tree has been produced automatically.  Do not change it!" ++ showTypeTreeLaTeX tree
+   show tree = show1 tree 1
+--  show tree = "%% WARNING: this proof tree has been produced automatically.  Do not change it!" ++ showTypeTreeLaTeX tree
 
 show1 :: TypeTree -> Int -> String
 show1 (ZeroAry l g t ty) i = showContext g ++ " |- " ++

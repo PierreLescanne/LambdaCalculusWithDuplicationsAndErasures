@@ -1,5 +1,5 @@
 -- Typable.hs by Pierre Lescanne
--- Time-stamp: "2019-01-13 11:33:30 pierre" 
+-- Time-stamp: "2025-05-19 22:47:22 pierre" 
 
 ----------------------------------
 -- type reconstruction
@@ -117,12 +117,12 @@ nonTrivialEq (ty1, ty2) = True
 
 -- apply an instantion to an equation
 apply::  Equation -> Equation -> Equation
-apply σ @ (Var i,ty) (ty1,ty2) = (ty1 ← σ,  ty2 ← σ)
+apply σ@(Var i,ty) (ty1,ty2) = (ty1 ← σ,  ty2 ← σ)
 
 -- `solve` takes a set of constraints and a set of solved constraints and 
 -- returns a set of constraints, a set of solved constraints or fails
 solve :: [Equation] -> [Equation] -> Maybe ([Equation],[Equation])
-solve (σ @ (Var i,ty):l) sol = 
+solve (σ@(Var i,ty):l) sol = 
   if  Var i ¢ ty then Nothing -- cycle detected
   else solve (map (apply σ) l) (σ:sol)
 solve (eq:l) sol = solve (filter nonTrivialEq (decompose eq) ++ l) sol
