@@ -1,5 +1,5 @@
 -- Lambda_R_dB_show.hs by Pierre Lescanne
--- Time-stamp: "2025-05-24 15:28:44 pierre" 
+-- Time-stamp: "2025-06-22 16:49:54 pierre" 
 module Lambda_R_dB_show where
 
 import Lambda_dB
@@ -16,8 +16,8 @@ instance Show SubLiftShift where
 
 -- The user may choose the kind of display she wants
 instance Show RTerm where
-  -- show t = showRTerm t -- classic and friendly for interaction
-  show t = showLaTeX t -- LaTeX for a paper
+  show t = showRTerm t -- classic and friendly for interaction
+  -- show t = showLaTeX t -- LaTeX for a paper
   -- show t = showALaGhilezan t -- Silvia Ghilezan, Jelena Ivetic, Pierre Lescanne, and Silvia Likavec. 2014. Resource control and intersection types: an intrinsic connection. arXiv:1412.2219 
   -- show t = showALaGhilezanLaTeX t 
   -- show t = showALaLengrandLaTeX t -- Delia Kesner and Stéphane Lengrand. 2007. Resource operators for lambda-calculus. Inf. Comput. 205, 4 (2007), 419–473.
